@@ -33,6 +33,8 @@ interface ThreadImplConfig {
   isDM?: boolean;
   /** Current message context for streaming (provides userId/teamId) */
   currentMessage?: Message;
+  /** Update interval for fallback streaming in milliseconds. Defaults to 500ms. */
+  streamingUpdateIntervalMs?: number;
 }
 
 /** State key prefix for thread state */
@@ -60,6 +62,8 @@ export class ThreadImpl<TState = Record<string, unknown>>
   private _isSubscribedContext: boolean;
   /** Current message context for streaming - provides userId/teamId */
   private _currentMessage?: Message;
+  /** Update interval for fallback streaming */
+  private _streamingUpdateIntervalMs: number;
 
   constructor(config: ThreadImplConfig) {
     this.id = config.id;
@@ -69,6 +73,7 @@ export class ThreadImpl<TState = Record<string, unknown>>
     this._stateAdapter = config.stateAdapter;
     this._isSubscribedContext = config.isSubscribedContext ?? false;
     this._currentMessage = config.currentMessage;
+    this._streamingUpdateIntervalMs = config.streamingUpdateIntervalMs ?? 500;
 
     if (config.initialMessage) {
       this._recentMessages = [config.initialMessage];
@@ -232,28 +237,71 @@ export class ThreadImpl<TState = Record<string, unknown>>
   /**
    * Fallback streaming implementation using post + edit.
    * Used when adapter doesn't support native streaming.
-   * Updates at most once per second by default to avoid rate limits.
+   * Uses recursive setTimeout to send updates every intervalMs (default 500ms).
+   * Schedules next update only after current edit completes to avoid overwhelming slow services.
    */
   private async fallbackStream(
     textStream: AsyncIterable<string>,
     options?: StreamOptions,
   ): Promise<SentMessage> {
-    const intervalMs = options?.updateIntervalMs ?? 1000;
+    const intervalMs =
+      options?.updateIntervalMs ?? this._streamingUpdateIntervalMs;
     const msg = await this.adapter.postMessage(this.id, "...");
 
     let accumulated = "";
-    let lastUpdate = 0;
+    let lastEditContent = "..."; // Track that we posted "..." initially
+    let stopped = false;
+    let pendingEdit: Promise<void> | null = null;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
 
-    for await (const chunk of textStream) {
-      accumulated += chunk;
-      const now = Date.now();
+    const doEditAndReschedule = async (): Promise<void> => {
+      if (stopped) return;
 
-      if (now - lastUpdate >= intervalMs) {
-        await this.adapter.editMessage(this.id, msg.id, accumulated);
-        lastUpdate = now;
+      if (accumulated !== lastEditContent) {
+        const content = accumulated;
+        try {
+          await this.adapter.editMessage(this.id, msg.id, content);
+          lastEditContent = content;
+        } catch {
+          // Ignore errors, continue
+        }
+      }
+
+      // Schedule next check after intervalMs (only after edit completes)
+      if (!stopped) {
+        timerId = setTimeout(() => {
+          pendingEdit = doEditAndReschedule();
+        }, intervalMs);
+      }
+    };
+
+    // Start the first timeout
+    timerId = setTimeout(() => {
+      pendingEdit = doEditAndReschedule();
+    }, intervalMs);
+
+    try {
+      for await (const chunk of textStream) {
+        accumulated += chunk;
+      }
+    } finally {
+      stopped = true;
+      if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
       }
     }
-    await this.adapter.editMessage(this.id, msg.id, accumulated);
+
+    // Wait for any pending edit to complete
+    if (pendingEdit) {
+      await pendingEdit;
+    }
+
+    // Final edit to ensure all content is shown (including empty stream replacing "...")
+    if (accumulated !== lastEditContent) {
+      await this.adapter.editMessage(this.id, msg.id, accumulated);
+    }
+
     return this.createSentMessage(msg.id, accumulated);
   }
 

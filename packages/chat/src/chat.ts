@@ -97,6 +97,7 @@ export class Chat<
   private _stateAdapter: StateAdapter;
   private userName: string;
   private logger: Logger;
+  private _streamingUpdateIntervalMs: number;
 
   private mentionHandlers: MentionHandler<TState>[] = [];
   private messagePatterns: MessagePattern<TState>[] = [];
@@ -119,6 +120,7 @@ export class Chat<
     this.userName = config.userName;
     this._stateAdapter = config.state;
     this.adapters = new Map();
+    this._streamingUpdateIntervalMs = config.streamingUpdateIntervalMs ?? 500;
 
     // Initialize logger
     if (!config.logger) {
@@ -854,6 +856,7 @@ export class Chat<
       isSubscribedContext,
       isDM,
       currentMessage: initialMessage,
+      streamingUpdateIntervalMs: this._streamingUpdateIntervalMs,
     });
   }
 

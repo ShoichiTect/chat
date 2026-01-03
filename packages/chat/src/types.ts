@@ -90,6 +90,11 @@ export interface ChatConfig<
    * Pass "silent" to disable all logging.
    */
   logger?: Logger | LogLevel;
+  /**
+   * Update interval for fallback streaming (post + edit) in milliseconds.
+   * Defaults to 500ms. Lower values provide smoother updates but may hit rate limits.
+   */
+  streamingUpdateIntervalMs?: number;
 }
 
 /**
