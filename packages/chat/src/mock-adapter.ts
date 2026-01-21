@@ -3,12 +3,12 @@
  */
 import { vi } from "vitest";
 import { parseMarkdown } from "./markdown";
+import { Message, type MessageData } from "./message";
 import type {
   Adapter,
   FormattedContent,
   Lock,
   Logger,
-  Message,
   StateAdapter,
 } from "./types";
 
@@ -141,9 +141,9 @@ export function createMockState(): MockStateAdapter {
 export function createTestMessage(
   id: string,
   text: string,
-  overrides?: Partial<Message>,
+  overrides?: Partial<MessageData>,
 ): Message {
-  return {
+  return new Message({
     id,
     threadId: "slack:C123:1234.5678",
     text,
@@ -162,5 +162,5 @@ export function createTestMessage(
     },
     attachments: [],
     ...overrides,
-  };
+  });
 }

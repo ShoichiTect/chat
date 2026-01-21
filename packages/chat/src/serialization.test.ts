@@ -1,17 +1,13 @@
+import { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from "@workflow/serde";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Chat } from "./chat";
+import { Message, type SerializedMessage } from "./message";
 import {
   createMockAdapter,
   createMockState,
   createTestMessage,
 } from "./mock-adapter";
-import {
-  deserializeMessage,
-  type SerializedMessage,
-  type SerializedThread,
-  serializeMessage,
-  ThreadImpl,
-} from "./thread";
+import { type SerializedThread, ThreadImpl } from "./thread";
 
 describe("Serialization", () => {
   describe("ThreadImpl.toJSON()", () => {
@@ -158,11 +154,11 @@ describe("Serialization", () => {
     });
   });
 
-  describe("serializeMessage()", () => {
+  describe("Message.toJSON()", () => {
     it("should serialize message with correct type tag", () => {
       const message = createTestMessage("msg-1", "Hello world");
 
-      const json = serializeMessage(message);
+      const json = message.toJSON();
 
       expect(json._type).toBe("chat:Message");
       expect(json.id).toBe("msg-1");
@@ -178,7 +174,7 @@ describe("Serialization", () => {
         },
       });
 
-      const json = serializeMessage(message);
+      const json = message.toJSON();
 
       expect(json.metadata.dateSent).toBe("2024-01-15T10:30:00.000Z");
       expect(json.metadata.editedAt).toBe("2024-01-15T11:00:00.000Z");
@@ -192,7 +188,7 @@ describe("Serialization", () => {
         },
       });
 
-      const json = serializeMessage(message);
+      const json = message.toJSON();
 
       expect(json.metadata.editedAt).toBeUndefined();
     });
@@ -200,7 +196,7 @@ describe("Serialization", () => {
     it("should serialize author correctly", () => {
       const message = createTestMessage("msg-1", "Test");
 
-      const json = serializeMessage(message);
+      const json = message.toJSON();
 
       expect(json.author).toEqual({
         userId: "U123",
@@ -228,7 +224,7 @@ describe("Serialization", () => {
         ],
       });
 
-      const json = serializeMessage(message);
+      const json = message.toJSON();
 
       expect(json.attachments).toHaveLength(1);
       expect(json.attachments[0]).toEqual({
@@ -250,7 +246,7 @@ describe("Serialization", () => {
         isMention: true,
       });
 
-      const json = serializeMessage(message);
+      const json = message.toJSON();
 
       expect(json.isMention).toBe(true);
     });
@@ -258,7 +254,7 @@ describe("Serialization", () => {
     it("should produce JSON-serializable output", () => {
       const message = createTestMessage("msg-1", "Hello **world**");
 
-      const json = serializeMessage(message);
+      const json = message.toJSON();
       const stringified = JSON.stringify(json);
       const parsed = JSON.parse(stringified);
 
@@ -267,7 +263,7 @@ describe("Serialization", () => {
     });
   });
 
-  describe("deserializeMessage()", () => {
+  describe("Message.fromJSON()", () => {
     it("should restore message from JSON", () => {
       const json: SerializedMessage = {
         _type: "chat:Message",
@@ -290,7 +286,7 @@ describe("Serialization", () => {
         attachments: [],
       };
 
-      const message = deserializeMessage(json);
+      const message = Message.fromJSON(json);
 
       expect(message.id).toBe("msg-1");
       expect(message.text).toBe("Hello world");
@@ -320,7 +316,7 @@ describe("Serialization", () => {
         attachments: [],
       };
 
-      const message = deserializeMessage(json);
+      const message = Message.fromJSON(json);
 
       expect(message.metadata.dateSent).toBeInstanceOf(Date);
       expect(message.metadata.dateSent.toISOString()).toBe(
@@ -354,7 +350,7 @@ describe("Serialization", () => {
         attachments: [],
       };
 
-      const message = deserializeMessage(json);
+      const message = Message.fromJSON(json);
 
       expect(message.metadata.editedAt).toBeUndefined();
     });
@@ -376,8 +372,8 @@ describe("Serialization", () => {
         ],
       });
 
-      const json = serializeMessage(original);
-      const restored = deserializeMessage(json);
+      const json = original.toJSON();
+      const restored = Message.fromJSON(json);
 
       expect(restored.id).toBe(original.id);
       expect(restored.text).toBe(original.text);
@@ -545,6 +541,127 @@ describe("Serialization", () => {
       const parsed = JSON.parse(payload, chat.reviver());
 
       expect(parsed.data.messages[0].metadata.dateSent).toBeInstanceOf(Date);
+    });
+  });
+
+  describe("@workflow/serde integration", () => {
+    describe("ThreadImpl", () => {
+      it("should have WORKFLOW_SERIALIZE static method", () => {
+        expect(ThreadImpl[WORKFLOW_SERIALIZE]).toBeDefined();
+        expect(typeof ThreadImpl[WORKFLOW_SERIALIZE]).toBe("function");
+      });
+
+      it("should have WORKFLOW_DESERIALIZE static method", () => {
+        expect(ThreadImpl[WORKFLOW_DESERIALIZE]).toBeDefined();
+        expect(typeof ThreadImpl[WORKFLOW_DESERIALIZE]).toBe("function");
+      });
+
+      it("should serialize via WORKFLOW_SERIALIZE", () => {
+        const mockAdapter = createMockAdapter("slack");
+        const mockState = createMockState();
+
+        const thread = new ThreadImpl({
+          id: "slack:C123:1234.5678",
+          adapter: mockAdapter,
+          channelId: "C123",
+          stateAdapter: mockState,
+          isDM: false,
+        });
+
+        const serialized = ThreadImpl[WORKFLOW_SERIALIZE](thread);
+
+        expect(serialized).toEqual({
+          _type: "chat:Thread",
+          id: "slack:C123:1234.5678",
+          channelId: "C123",
+          isDM: false,
+          adapterName: "slack",
+        });
+      });
+
+      it("should return serialized data from WORKFLOW_DESERIALIZE", () => {
+        const data: SerializedThread = {
+          _type: "chat:Thread",
+          id: "slack:C123:1234.5678",
+          channelId: "C123",
+          isDM: false,
+          adapterName: "slack",
+        };
+
+        // WORKFLOW_DESERIALIZE returns the data as-is because
+        // full deserialization requires a Chat instance
+        const result = ThreadImpl[WORKFLOW_DESERIALIZE](data);
+
+        expect(result).toEqual(data);
+      });
+    });
+
+    describe("Message", () => {
+      it("should have WORKFLOW_SERIALIZE static method", () => {
+        expect(Message[WORKFLOW_SERIALIZE]).toBeDefined();
+        expect(typeof Message[WORKFLOW_SERIALIZE]).toBe("function");
+      });
+
+      it("should have WORKFLOW_DESERIALIZE static method", () => {
+        expect(Message[WORKFLOW_DESERIALIZE]).toBeDefined();
+        expect(typeof Message[WORKFLOW_DESERIALIZE]).toBe("function");
+      });
+
+      it("should serialize via WORKFLOW_SERIALIZE", () => {
+        const message = createTestMessage("msg-1", "Hello world");
+
+        const serialized = Message[WORKFLOW_SERIALIZE](message);
+
+        expect(serialized._type).toBe("chat:Message");
+        expect(serialized.id).toBe("msg-1");
+        expect(serialized.text).toBe("Hello world");
+        expect(typeof serialized.metadata.dateSent).toBe("string");
+      });
+
+      it("should deserialize via WORKFLOW_DESERIALIZE", () => {
+        const data: SerializedMessage = {
+          _type: "chat:Message",
+          id: "msg-1",
+          threadId: "slack:C123:1234.5678",
+          text: "Hello",
+          formatted: { type: "root", children: [] },
+          raw: {},
+          author: {
+            userId: "U123",
+            userName: "testuser",
+            fullName: "Test User",
+            isBot: false,
+            isMe: false,
+          },
+          metadata: {
+            dateSent: "2024-01-15T10:30:00.000Z",
+            edited: false,
+          },
+          attachments: [],
+        };
+
+        const message = Message[WORKFLOW_DESERIALIZE](data);
+
+        expect(message.id).toBe("msg-1");
+        expect(message.text).toBe("Hello");
+        expect(message.metadata.dateSent).toBeInstanceOf(Date);
+      });
+
+      it("should round-trip via WORKFLOW_SERIALIZE and WORKFLOW_DESERIALIZE", () => {
+        const original = createTestMessage("msg-1", "Test message", {
+          isMention: true,
+        });
+
+        const serialized = Message[WORKFLOW_SERIALIZE](original);
+        const restored = Message[WORKFLOW_DESERIALIZE](serialized);
+
+        expect(restored.id).toBe(original.id);
+        expect(restored.text).toBe(original.text);
+        expect(restored.isMention).toBe(original.isMention);
+        expect(restored.metadata.dateSent.getTime()).toBe(
+          original.metadata.dateSent.getTime(),
+        );
+      });
     });
   });
 });

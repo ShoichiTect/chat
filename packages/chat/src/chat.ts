@@ -1,11 +1,7 @@
 import { isJSX, toModalElement } from "./jsx-runtime";
+import { Message, type SerializedMessage } from "./message";
 import type { ModalElement } from "./modals";
-import {
-  deserializeMessage,
-  type SerializedMessage,
-  type SerializedThread,
-  ThreadImpl,
-} from "./thread";
+import { type SerializedThread, ThreadImpl } from "./thread";
 import type {
   ActionEvent,
   ActionHandler,
@@ -17,7 +13,6 @@ import type {
   Logger,
   LogLevel,
   MentionHandler,
-  Message,
   MessageHandler,
   ModalCloseEvent,
   ModalCloseHandler,
@@ -495,7 +490,7 @@ export class Chat<
           return ThreadImpl.fromJSON(chat, value as SerializedThread);
         }
         if (typed._type === "chat:Message") {
-          return deserializeMessage(value as SerializedMessage);
+          return Message.fromJSON(value as SerializedMessage);
         }
       }
       return value;

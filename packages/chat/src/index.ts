@@ -1,12 +1,11 @@
 // Main exports
 export { Chat } from "./chat";
 export {
-  deserializeMessage,
+  Message,
+  type MessageData,
   type SerializedMessage,
-  type SerializedThread,
-  serializeMessage,
-  ThreadImpl,
-} from "./thread";
+} from "./message";
+export { type SerializedThread, ThreadImpl } from "./thread";
 
 // Card builders - import then re-export to ensure values are properly exported
 import {
@@ -196,7 +195,6 @@ export type {
   Logger,
   LogLevel,
   MentionHandler,
-  Message,
   MessageHandler,
   MessageMetadata,
   ModalCloseEvent,

@@ -1,3 +1,4 @@
+import { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from "@workflow/serde";
 import type { Root } from "mdast";
 import { cardToFallbackText } from "./cards";
 import type { Chat } from "./chat";
@@ -9,11 +10,11 @@ import {
   text as textNode,
   toPlainText,
 } from "./markdown";
+import { Message } from "./message";
 import type {
   Adapter,
   AdapterPostableMessage,
   Attachment,
-  Message,
   PostableMessage,
   SentMessage,
   StateAdapter,
@@ -400,6 +401,26 @@ export class ThreadImpl<TState = Record<string, unknown>>
     });
   }
 
+  /**
+   * Serialize a ThreadImpl instance for @workflow/serde.
+   * This static method is automatically called by workflow serialization.
+   */
+  static [WORKFLOW_SERIALIZE](instance: ThreadImpl): SerializedThread {
+    return instance.toJSON();
+  }
+
+  /**
+   * Deserialize a ThreadImpl from @workflow/serde.
+   * Note: This returns the serialized data as-is because deserialization
+   * requires a Chat instance. Use chat.reviver() or ThreadImpl.fromJSON()
+   * with the Chat instance to fully reconstruct the thread.
+   */
+  static [WORKFLOW_DESERIALIZE](data: SerializedThread): SerializedThread {
+    // Return the data as-is - full deserialization requires a Chat instance
+    // The workflow engine should use chat.reviver() to complete deserialization
+    return data;
+  }
+
   private createSentMessage(
     messageId: string,
     postable: AdapterPostableMessage,
@@ -432,6 +453,10 @@ export class ThreadImpl<TState = Record<string, unknown>>
         edited: false,
       },
       attachments,
+
+      toJSON() {
+        return new Message(this).toJSON();
+      },
 
       async edit(
         newContent: string | PostableMessage | CardJSXElement,
@@ -537,130 +562,4 @@ function extractMessageContent(message: AdapterPostableMessage): {
 
   // Should never reach here with proper typing
   throw new Error("Invalid PostableMessage format");
-}
-
-// =============================================================================
-// Message Serialization
-// =============================================================================
-
-/**
- * Serialized message data for passing to external systems (e.g., workflow engines).
- * Dates are converted to ISO strings, and non-serializable fields (Buffer, functions) are omitted.
- */
-export interface SerializedMessage {
-  _type: "chat:Message";
-  id: string;
-  threadId: string;
-  text: string;
-  formatted: Root;
-  raw: unknown;
-  author: {
-    userId: string;
-    userName: string;
-    fullName: string;
-    isBot: boolean | "unknown";
-    isMe: boolean;
-  };
-  metadata: {
-    dateSent: string; // ISO string
-    edited: boolean;
-    editedAt?: string; // ISO string
-  };
-  attachments: Array<{
-    type: "image" | "file" | "video" | "audio";
-    url?: string;
-    name?: string;
-    mimeType?: string;
-    size?: number;
-    width?: number;
-    height?: number;
-    // Note: data and fetchData are omitted as they're not serializable
-  }>;
-  isMention?: boolean;
-}
-
-/**
- * Serialize a Message to a plain JSON object.
- * Use this to pass message data to external systems like workflow engines.
- *
- * Note: Attachment `data` (Buffer) and `fetchData` (function) are omitted as they're not serializable.
- * If you need attachment data, call `fetchData()` before serializing and store the result separately.
- *
- * @param message - The Message to serialize
- * @returns A plain JSON-serializable object
- *
- * @example
- * ```typescript
- * // Pass to a workflow
- * await workflow.start("my-workflow", {
- *   thread: thread.toJSON(),
- *   message: serializeMessage(message),
- * });
- * ```
- */
-export function serializeMessage(message: Message): SerializedMessage {
-  return {
-    _type: "chat:Message",
-    id: message.id,
-    threadId: message.threadId,
-    text: message.text,
-    formatted: message.formatted,
-    raw: message.raw,
-    author: {
-      userId: message.author.userId,
-      userName: message.author.userName,
-      fullName: message.author.fullName,
-      isBot: message.author.isBot,
-      isMe: message.author.isMe,
-    },
-    metadata: {
-      dateSent: message.metadata.dateSent.toISOString(),
-      edited: message.metadata.edited,
-      editedAt: message.metadata.editedAt?.toISOString(),
-    },
-    attachments: message.attachments.map((att) => ({
-      type: att.type,
-      url: att.url,
-      name: att.name,
-      mimeType: att.mimeType,
-      size: att.size,
-      width: att.width,
-      height: att.height,
-    })),
-    isMention: message.isMention,
-  };
-}
-
-/**
- * Deserialize a Message from JSON data.
- * Converts ISO date strings back to Date objects.
- *
- * @param json - The serialized message data from serializeMessage()
- * @returns A Message object
- *
- * @example
- * ```typescript
- * // In a workflow handler
- * const message = deserializeMessage(data.message);
- * console.log(message.text);
- * ```
- */
-export function deserializeMessage(json: SerializedMessage): Message {
-  return {
-    id: json.id,
-    threadId: json.threadId,
-    text: json.text,
-    formatted: json.formatted,
-    raw: json.raw,
-    author: json.author,
-    metadata: {
-      dateSent: new Date(json.metadata.dateSent),
-      edited: json.metadata.edited,
-      editedAt: json.metadata.editedAt
-        ? new Date(json.metadata.editedAt)
-        : undefined,
-    },
-    attachments: json.attachments,
-    isMention: json.isMention,
-  };
 }
