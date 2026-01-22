@@ -4,5 +4,15 @@
   "ignore": [],
   "rules": {
     "duplicates": "off"
+  },
+  "nitro": {
+    "entry": [
+      "server.{js,mjs,ts}",
+      "server/api/**/*.ts",
+      "server/routes/**/*.ts",
+      "server/middleware/**/*.ts",
+      "server/plugins/**/*.ts",
+      ".nitro/types/*.d.ts"
+    ]
   }
 }

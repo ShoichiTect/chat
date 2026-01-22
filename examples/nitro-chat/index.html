@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chat SDK Example</title>
+  </head>
+  <body>
+    <main style="padding: 2rem; font-family: system-ui, sans-serif">
+      <h1>Chat SDK Example</h1>
+      <p>This is an example Nitro app using chat.</p>
+
+      <p><a href="/settings.html">Settings</a> - Configure preview branch proxy</p>
+
+      <h2>Webhook Endpoints</h2>
+      <ul>
+        <li><code>/api/webhooks/slack</code> - Slack events</li>
+        <li><code>/api/webhooks/discord</code> - Discord events</li>
+        <li><code>/api/webhooks/teams</code> - Microsoft Teams events</li>
+        <li><code>/api/webhooks/gchat</code> - Google Chat events</li>
+      </ul>
+
+      <h2>Features</h2>
+      <ul>
+        <li>
+          <strong>AI Mode</strong> - Mention the bot with "AI" to enable AI
+          assistant mode (uses Claude)
+        </li>
+        <li><strong>Rich Cards</strong> - Interactive cards with buttons</li>
+        <li>
+          <strong>Reactions</strong> - React to bot messages and it reacts back
+        </li>
+        <li>
+          <strong>DM Support</strong> - Say "DM me" to get a direct message
+        </li>
+      </ul>
+
+      <h2>Configuration</h2>
+      <p>Set the following environment variables to enable each platform:</p>
+
+      <h3>Slack</h3>
+      <pre>
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_SIGNING_SECRET=...</pre
+      >
+
+      <h3>Discord</h3>
+      <pre>
+DISCORD_BOT_TOKEN=...
+DISCORD_PUBLIC_KEY=...
+DISCORD_APPLICATION_ID=...</pre
+      >
+
+      <h3>Microsoft Teams</h3>
+      <pre>
+TEAMS_APP_ID=...
+TEAMS_APP_PASSWORD=...</pre
+      >
+
+      <h3>Google Chat</h3>
+      <pre>GOOGLE_CHAT_CREDENTIALS={"type":"service_account",...}</pre>
+    </main>
+  </body>
+</html>

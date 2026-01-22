@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Nitro Chat Bot</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: #fafafa;
+      color: #333;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+    h2 {
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .description {
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    input[type="url"] {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+    input[type="url"]:focus {
+      outline: none;
+      border-color: #0070f3;
+      box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
+    }
+    .buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+    button {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: #0070f3;
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #0060df;
+    }
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: #c82333;
+    }
+    .status {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 6px;
+    }
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status-idle {
+      background: #f8f9fa;
+      color: #666;
+    }
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .status-loading {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 2rem;
+      color: #0070f3;
+      text-decoration: none;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Settings</h1>
+
+  <section>
+    <h2>Preview Branch</h2>
+    <p class="description">
+      Configure a preview branch URL to proxy webhook requests to a different deployment.
+      This allows testing a preview branch with real webhook traffic.
+    </p>
+
+    <div id="content">
+      <p class="status status-loading">Loading...</p>
+    </div>
+  </section>
+
+  <a href="/" class="back-link">&larr; Back to Home</a>
+
+  <script>
+    const contentEl = document.getElementById('content');
+    let savedUrl = null;
+
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/settings/preview-branch');
+        const data = await res.json();
+
+        if (data.error) {
+          renderError(data.error);
+        } else {
+          savedUrl = data.url;
+          renderForm();
+        }
+      } catch (err) {
+        renderError(err.message);
+      }
+    }
+
+    function renderForm() {
+      contentEl.innerHTML = `
+        <form id="settings-form">
+          <label for="preview-url">Preview Branch URL</label>
+          <input
+            type="url"
+            id="preview-url"
+            name="url"
+            placeholder="https://your-preview-branch.vercel.app"
+            value="${savedUrl || ''}"
+          >
+          <div class="buttons">
+            <button type="submit" class="btn-primary">Save</button>
+            ${savedUrl ? '<button type="button" id="clear-btn" class="btn-danger">Clear</button>' : ''}
+          </div>
+        </form>
+        <div id="status-msg" class="status ${savedUrl ? 'status-success' : 'status-idle'}">
+          ${savedUrl
+            ? `Webhook requests are being proxied to: <strong>${savedUrl}</strong>`
+            : 'No preview branch configured. Webhooks are handled by this deployment.'}
+        </div>
+      `;
+
+      document.getElementById('settings-form').addEventListener('submit', handleSave);
+      const clearBtn = document.getElementById('clear-btn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', handleClear);
+      }
+    }
+
+    function renderError(message) {
+      contentEl.innerHTML = `<p class="status status-error">Error: ${message}</p>`;
+    }
+
+    function setStatus(message, type) {
+      const statusEl = document.getElementById('status-msg');
+      if (statusEl) {
+        statusEl.className = `status status-${type}`;
+        statusEl.innerHTML = message;
+      }
+    }
+
+    function setButtonsDisabled(disabled) {
+      contentEl.querySelectorAll('button').forEach(btn => btn.disabled = disabled);
+    }
+
+    async function handleSave(e) {
+      e.preventDefault();
+      const url = document.getElementById('preview-url').value;
+
+      setButtonsDisabled(true);
+      setStatus('Saving...', 'loading');
+
+      try {
+        const res = await fetch('/api/settings/preview-branch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url || null })
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          setStatus(`Error: ${data.error}`, 'error');
+        } else {
+          savedUrl = data.url;
+          renderForm();
+        }
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, 'error');
+      }
+
+      setButtonsDisabled(false);
+    }
+
+    async function handleClear() {
+      document.getElementById('preview-url').value = '';
+      setButtonsDisabled(true);
+      setStatus('Clearing...', 'loading');
+
+      try {
+        const res = await fetch('/api/settings/preview-branch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: null })
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          setStatus(`Error: ${data.error}`, 'error');
+        } else {
+          savedUrl = null;
+          renderForm();
+        }
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, 'error');
+      }
+
+      setButtonsDisabled(false);
+    }
+
+    // Load settings on page load
+    loadSettings();
+  </script>
+</body>
+</html>
