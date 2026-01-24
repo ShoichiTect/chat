@@ -128,7 +128,7 @@ function convertChildToBlocks(child: CardChild): SlackBlock[] {
   }
 }
 
-function convertTextToBlock(element: TextElement): SlackBlock {
+export function convertTextToBlock(element: TextElement): SlackBlock {
   const text = convertEmoji(element.content);
   let formattedText = text;
 
@@ -160,7 +160,7 @@ function convertImageToBlock(element: ImageElement): SlackBlock {
   };
 }
 
-function convertDividerToBlock(_element: DividerElement): SlackBlock {
+export function convertDividerToBlock(_element: DividerElement): SlackBlock {
   return { type: "divider" };
 }
 
@@ -233,7 +233,7 @@ function convertSectionToBlocks(element: SectionElement): SlackBlock[] {
   return blocks;
 }
 
-function convertFieldsToBlock(element: FieldsElement): SlackBlock {
+export function convertFieldsToBlock(element: FieldsElement): SlackBlock {
   const fields: SlackTextObject[] = [];
 
   for (const field of element.children) {

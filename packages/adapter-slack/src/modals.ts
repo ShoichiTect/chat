@@ -9,7 +9,12 @@ import type {
   SelectElement,
   TextInputElement,
 } from "chat";
-import type { SlackBlock } from "./cards";
+import {
+  convertDividerToBlock,
+  convertFieldsToBlock,
+  convertTextToBlock,
+  type SlackBlock,
+} from "./cards";
 
 export interface SlackView {
   type: "modal";
@@ -54,6 +59,12 @@ function modalChildToBlock(child: ModalChild): SlackBlock {
       return textInputToBlock(child);
     case "select":
       return selectToBlock(child);
+    case "text":
+      return convertTextToBlock(child);
+    case "divider":
+      return convertDividerToBlock(child);
+    case "fields":
+      return convertFieldsToBlock(child);
   }
 }
 

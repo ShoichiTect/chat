@@ -722,9 +722,6 @@ export class Chat<
       return { relatedThread: undefined, relatedMessage: undefined };
     }
 
-    // Delete after retrieval (one-time use)
-    await this._stateAdapter.delete(key);
-
     // Reconstruct thread with adapter directly
     const adapter = this.adapters.get(adapterName);
     const thread = ThreadImpl.fromJSON(stored.thread, adapter);
