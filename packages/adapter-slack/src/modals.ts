@@ -10,7 +10,6 @@ import type {
   TextInputElement,
 } from "chat";
 import {
-  convertDividerToBlock,
   convertFieldsToBlock,
   convertTextToBlock,
   type SlackBlock,
@@ -61,8 +60,6 @@ function modalChildToBlock(child: ModalChild): SlackBlock {
       return selectToBlock(child);
     case "text":
       return convertTextToBlock(child);
-    case "divider":
-      return convertDividerToBlock(child);
     case "fields":
       return convertFieldsToBlock(child);
   }

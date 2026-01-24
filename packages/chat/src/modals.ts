@@ -2,7 +2,7 @@
  * Modal elements for form dialogs.
  */
 
-import type { DividerElement, FieldsElement, TextElement } from "./cards";
+import type { FieldsElement, TextElement } from "./cards";
 
 // ============================================================================
 // Modal Element Types
@@ -12,7 +12,6 @@ export const VALID_MODAL_CHILD_TYPES = [
   "text_input",
   "select",
   "text",
-  "divider",
   "fields",
 ] as const;
 
@@ -20,7 +19,6 @@ export type ModalChild =
   | TextInputElement
   | SelectElement
   | TextElement
-  | DividerElement
   | FieldsElement;
 
 export interface ModalElement {
