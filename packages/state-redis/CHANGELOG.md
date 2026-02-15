@@ -1,5 +1,18 @@
 # @chat-adapter/state-redis
 
+## 4.10.0
+
+### Patch Changes
+
+- Updated dependencies [c7d51cb]
+  - chat@4.10.0
+
+## 4.9.1
+
+### Patch Changes
+
+- chat@4.9.1
+
 ## 4.9.0
 
 ### Patch Changes
