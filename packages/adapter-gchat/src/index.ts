@@ -1912,7 +1912,13 @@ export class GoogleChatAdapter implements Adapter<GoogleChatThreadId, unknown> {
   }
 
   /**
-   * Fetch channel-level messages (all messages in a space, not filtered by thread).
+   * Fetch channel-level messages (top-level posts only, not thread replies).
+   *
+   * Google Chat doesn't support server-side filtering for thread roots,
+   * so we fetch messages and filter client-side. A message is a thread root
+   * when the message ID prefix (before the dot) matches its thread ID.
+   * For example: message "spaces/X/messages/ABC.ABC" in thread "spaces/X/threads/ABC"
+   * is a root, while "spaces/X/messages/ABC.DEF" is a reply.
    */
   async fetchChannelMessages(
     channelId: string,
@@ -1933,89 +1939,171 @@ export class GoogleChatAdapter implements Adapter<GoogleChatThreadId, unknown> {
 
     try {
       if (direction === "backward") {
-        this.logger.debug(
-          "GChat API: spaces.messages.list (channel, backward)",
-          {
-            spaceName,
-            pageSize: limit,
-            cursor: options.cursor,
-          },
+        return this.fetchChannelMessagesBackward(
+          api,
+          spaceName,
+          channelId,
+          limit,
+          options.cursor,
         );
-
-        const response = await api.spaces.messages.list({
-          parent: spaceName,
-          pageSize: limit,
-          pageToken: options.cursor,
-          orderBy: "createTime desc",
-        });
-
-        // Reverse to chronological order within page
-        const rawMessages = (response.data.messages || []).reverse();
-
-        const messages = await Promise.all(
-          rawMessages.map((msg) =>
-            this.parseGChatListMessage(msg, spaceName, channelId),
-          ),
-        );
-
-        return {
-          messages,
-          nextCursor: response.data.nextPageToken ?? undefined,
-        };
       }
 
-      // Forward direction
-      this.logger.debug("GChat API: spaces.messages.list (channel, forward)", {
+      return this.fetchChannelMessagesForward(
+        api,
         spaceName,
+        channelId,
         limit,
-        cursor: options.cursor,
-      });
-
-      const allRawMessages: chat_v1.Schema$Message[] = [];
-      let pageToken: string | undefined;
-
-      do {
-        const response = await api.spaces.messages.list({
-          parent: spaceName,
-          pageSize: 1000,
-          pageToken,
-        });
-        allRawMessages.push(...(response.data.messages || []));
-        pageToken = response.data.nextPageToken ?? undefined;
-      } while (pageToken);
-
-      let startIndex = 0;
-      if (options.cursor) {
-        const cursorIndex = allRawMessages.findIndex(
-          (msg) => msg.name === options.cursor,
-        );
-        if (cursorIndex >= 0) startIndex = cursorIndex + 1;
-      }
-
-      const selectedMessages = allRawMessages.slice(
-        startIndex,
-        startIndex + limit,
+        options.cursor,
       );
-
-      const messages = await Promise.all(
-        selectedMessages.map((msg) =>
-          this.parseGChatListMessage(msg, spaceName, channelId),
-        ),
-      );
-
-      let nextCursor: string | undefined;
-      if (
-        startIndex + limit < allRawMessages.length &&
-        selectedMessages.length > 0
-      ) {
-        const lastMsg = selectedMessages[selectedMessages.length - 1];
-        if (lastMsg?.name) nextCursor = lastMsg.name;
-      }
-
-      return { messages, nextCursor };
     } catch (error) {
       this.handleGoogleChatError(error, "fetchChannelMessages");
     }
+  }
+
+  /**
+   * Check if a GChat message is a thread root (not a reply).
+   *
+   * Thread root messages have a name like "spaces/X/messages/THREAD_ID.THREAD_ID"
+   * where both parts of the dotted message ID match. Thread replies have
+   * "spaces/X/messages/THREAD_ID.DIFFERENT_ID".
+   *
+   * Messages without a thread field (e.g., in non-threaded spaces) are always top-level.
+   */
+  private isThreadRoot(msg: chat_v1.Schema$Message): boolean {
+    // Messages without thread info are top-level
+    if (!msg.thread?.name || !msg.name) return true;
+
+    // Extract the thread ID from thread.name: "spaces/X/threads/THREAD_ID"
+    const threadParts = msg.thread.name.split("/");
+    const threadId = threadParts[threadParts.length - 1];
+
+    // Extract message ID parts from name: "spaces/X/messages/THREAD_ID.MSG_ID"
+    const msgParts = msg.name.split("/");
+    const msgIdFull = msgParts[msgParts.length - 1] || "";
+    const dotIndex = msgIdFull.indexOf(".");
+    if (dotIndex === -1) return true; // No dot = top-level
+
+    const msgThreadPart = msgIdFull.slice(0, dotIndex);
+    const msgIdPart = msgIdFull.slice(dotIndex + 1);
+
+    // Thread root: both parts match the thread ID
+    return msgThreadPart === msgIdPart && msgThreadPart === threadId;
+  }
+
+  /**
+   * Fetch channel messages backward (most recent first), filtered to thread roots only.
+   * Over-fetches and filters client-side since the API doesn't support this filter.
+   */
+  private async fetchChannelMessagesBackward(
+    api: chat_v1.Chat,
+    spaceName: string,
+    channelId: string,
+    limit: number,
+    cursor?: string,
+  ): Promise<FetchResult<unknown>> {
+    this.logger.debug("GChat API: spaces.messages.list (channel, backward)", {
+      spaceName,
+      limit,
+      cursor,
+    });
+
+    // Over-fetch to compensate for filtered-out thread replies
+    const topLevel: chat_v1.Schema$Message[] = [];
+    let pageToken = cursor;
+    let apiNextPageToken: string | undefined;
+
+    // Keep fetching pages until we have enough top-level messages
+    while (topLevel.length < limit) {
+      const response = await api.spaces.messages.list({
+        parent: spaceName,
+        pageSize: Math.min(limit * 3, 1000),
+        pageToken,
+        orderBy: "createTime desc",
+      });
+
+      const pageMessages = response.data.messages || [];
+      if (pageMessages.length === 0) break;
+
+      for (const msg of pageMessages) {
+        if (this.isThreadRoot(msg)) {
+          topLevel.push(msg);
+        }
+      }
+
+      apiNextPageToken = response.data.nextPageToken ?? undefined;
+      if (!apiNextPageToken) break;
+      pageToken = apiNextPageToken;
+    }
+
+    // Take only the requested limit and reverse to chronological order
+    const selected = topLevel.slice(0, limit).reverse();
+
+    const messages = await Promise.all(
+      selected.map((msg) =>
+        this.parseGChatListMessage(msg, spaceName, channelId),
+      ),
+    );
+
+    return {
+      messages,
+      nextCursor: topLevel.length >= limit ? apiNextPageToken : undefined,
+    };
+  }
+
+  /**
+   * Fetch channel messages forward (oldest first), filtered to thread roots only.
+   */
+  private async fetchChannelMessagesForward(
+    api: chat_v1.Chat,
+    spaceName: string,
+    channelId: string,
+    limit: number,
+    cursor?: string,
+  ): Promise<FetchResult<unknown>> {
+    this.logger.debug("GChat API: spaces.messages.list (channel, forward)", {
+      spaceName,
+      limit,
+      cursor,
+    });
+
+    // Fetch all messages and filter to thread roots
+    const allRawMessages: chat_v1.Schema$Message[] = [];
+    let pageToken: string | undefined;
+
+    do {
+      const response = await api.spaces.messages.list({
+        parent: spaceName,
+        pageSize: 1000,
+        pageToken,
+      });
+      allRawMessages.push(...(response.data.messages || []));
+      pageToken = response.data.nextPageToken ?? undefined;
+    } while (pageToken);
+
+    // Filter to thread roots only
+    const topLevel = allRawMessages.filter((msg) => this.isThreadRoot(msg));
+
+    let startIndex = 0;
+    if (cursor) {
+      const cursorIndex = topLevel.findIndex((msg) => msg.name === cursor);
+      if (cursorIndex >= 0) startIndex = cursorIndex + 1;
+    }
+
+    const selectedMessages = topLevel.slice(startIndex, startIndex + limit);
+
+    const messages = await Promise.all(
+      selectedMessages.map((msg) =>
+        this.parseGChatListMessage(msg, spaceName, channelId),
+      ),
+    );
+
+    let nextCursor: string | undefined;
+    if (startIndex + limit < topLevel.length && selectedMessages.length > 0) {
+      const lastMsg = selectedMessages[selectedMessages.length - 1];
+      if (lastMsg?.name) nextCursor = lastMsg.name;
+    }
+
+    return { messages, nextCursor };
   }
 
   /**
