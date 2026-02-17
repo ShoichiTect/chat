@@ -36,6 +36,7 @@ export interface SerializedThread {
   id: string;
   channelId: string;
   isDM: boolean;
+  isExternalChannel?: boolean;
   adapterName: string;
 }
 
@@ -50,6 +51,7 @@ interface ThreadImplConfigWithAdapter {
   initialMessage?: Message;
   isSubscribedContext?: boolean;
   isDM?: boolean;
+  isExternalChannel?: boolean;
   currentMessage?: Message;
   streamingUpdateIntervalMs?: number;
 }
@@ -65,6 +67,7 @@ interface ThreadImplConfigLazy {
   initialMessage?: Message;
   isSubscribedContext?: boolean;
   isDM?: boolean;
+  isExternalChannel?: boolean;
   currentMessage?: Message;
   streamingUpdateIntervalMs?: number;
 }
@@ -95,6 +98,7 @@ export class ThreadImpl<TState = Record<string, unknown>>
   readonly id: string;
   readonly channelId: string;
   readonly isDM: boolean;
+  readonly isExternalChannel: boolean;
 
   /** Direct adapter instance (if provided) */
   private _adapter?: Adapter;
@@ -115,6 +119,7 @@ export class ThreadImpl<TState = Record<string, unknown>>
     this.id = config.id;
     this.channelId = config.channelId;
     this.isDM = config.isDM ?? false;
+    this.isExternalChannel = config.isExternalChannel ?? false;
     this._isSubscribedContext = config.isSubscribedContext ?? false;
     this._currentMessage = config.currentMessage;
     this._streamingUpdateIntervalMs = config.streamingUpdateIntervalMs ?? 500;
@@ -226,6 +231,7 @@ export class ThreadImpl<TState = Record<string, unknown>>
         adapter: this.adapter,
         stateAdapter: this._stateAdapter,
         isDM: this.isDM,
+        isExternalChannel: this.isExternalChannel,
       });
     }
     return this._channel;
@@ -548,6 +554,7 @@ export class ThreadImpl<TState = Record<string, unknown>>
       id: this.id,
       channelId: this.channelId,
       isDM: this.isDM,
+      ...(this.isExternalChannel ? { isExternalChannel: true } : {}),
       adapterName: this.adapter.name,
     };
   }
@@ -575,6 +582,7 @@ export class ThreadImpl<TState = Record<string, unknown>>
       adapterName: json.adapterName,
       channelId: json.channelId,
       isDM: json.isDM,
+      isExternalChannel: json.isExternalChannel,
     });
     if (adapter) {
       thread._adapter = adapter;
