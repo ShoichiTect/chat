@@ -1073,6 +1073,9 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
    * Resolve inline user mentions in Slack mrkdwn text.
    * Converts <@U123> to <@U123|displayName> so that toAst/extractPlainText
    * renders them as @displayName instead of @U123.
+   *
+   * Skips the bot's own user ID so that mention detection (which looks for
+   * @botUserId in the text) continues to work.
    */
   private async resolveInlineMentions(text: string): Promise<string> {
     const mentionPattern = /<@([A-Z0-9]+)(?:\|[^>]*)?>/g;
@@ -1081,6 +1084,12 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
     while (match) {
       userIds.add(match[1]);
       match = mentionPattern.exec(text);
+    }
+    if (userIds.size === 0) return text;
+
+    // Don't resolve the bot's own mention — detectMention needs @botUserId in text
+    if (this._botUserId) {
+      userIds.delete(this._botUserId);
     }
     if (userIds.size === 0) return text;
 
