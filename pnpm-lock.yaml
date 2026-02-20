@@ -33,8 +33,8 @@ importers:
   apps/docs:
     dependencies:
       '@ai-sdk/react':
-        specifier: ^2.0.115
-        version: 2.0.135(react@19.2.3)(zod@4.3.3)
+        specifier: ^3.0.98
+        version: 3.0.98(react@19.2.3)(zod@4.3.3)
       '@icons-pack/react-simple-icons':
         specifier: ^13.8.0
         version: 13.11.2(react@19.2.3)
@@ -79,7 +79,7 @@ importers:
         version: 16.2.2(@types/react@19.2.7)(lucide-react@0.555.0(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       fumadocs-mdx:
         specifier: 14.0.4
-        version: 14.0.4(fumadocs-core@16.2.2(@types/react@19.2.7)(lucide-react@0.555.0(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(vite@5.4.21(@types/node@24.10.13)(lightningcss@1.30.2))
+        version: 14.0.4(fumadocs-core@16.2.2(@types/react@19.2.7)(lucide-react@0.555.0(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       fumadocs-ui:
         specifier: 16.2.2
         version: 16.2.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(lucide-react@0.555.0(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwindcss@4.1.18)
@@ -562,8 +562,20 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
+  '@ai-sdk/gateway@3.0.53':
+    resolution: {integrity: sha512-QT3FEoNARMRlk8JJVR7L98exiK9C8AGfrEJVbRxBT1yIXKs/N19o/+PsjTRVsARgDJNcy9JbJp1FspKucEat0Q==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
   '@ai-sdk/provider-utils@3.0.21':
     resolution: {integrity: sha512-veuMwTLxsgh31Jjn0SnBABnM1f7ebHhRWcV2ZuY3hP3iJDCZ8VXBaYqcHXoOQDqUXTCas08sKQcHyWK+zl882Q==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider-utils@4.0.15':
+    resolution: {integrity: sha512-8XiKWbemmCbvNN0CLR9u3PQiet4gtEVIrX4zzLxnCj06AwsEDJwJVBbKrEI4t6qE8XRSIvU2irka0dcpziKW6w==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -582,15 +594,15 @@ packages:
     resolution: {integrity: sha512-2lR4w7mr9XrydzxBSjir4N6YMGdXD+Np1Sh0RXABh7tWdNFFwIeRI1Q+SaYZMbfL8Pg8RRLcrxQm51yxTLhokg==}
     engines: {node: '>=18'}
 
-  '@ai-sdk/react@2.0.135':
-    resolution: {integrity: sha512-nwq77FiyONf8rLImeh+yuiMSNpqSakM1RKS+3dgYZxk6enbR0gDvA9pPZnF6xsNwKDtu5oAXUtXgdCk5vAzwvA==}
+  '@ai-sdk/provider@3.0.8':
+    resolution: {integrity: sha512-oGMAgGoQdBXbZqNG0Ze56CHjDZ1IDYOwGYxYjO5KLSlz5HiNQ9udIXsPZ61VWaHGZ5XW/jyjmr6t2xz2jGVwbQ==}
+    engines: {node: '>=18'}
+
+  '@ai-sdk/react@3.0.98':
+    resolution: {integrity: sha512-1+EDDdfDUPQACCu9nA5Dh8t7QUo6paeIMYQPG+4E8tJUugek+ifC8d9vRgXo4gX+zoX9DE1z8WjIlLBHUPx/JQ==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^18 || ~19.0.1 || ~19.1.2 || ^19.2.1
-      zod: ^3.25.76 || ^4.1.8
-    peerDependenciesMeta:
-      zod:
-        optional: true
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -3085,6 +3097,12 @@ packages:
 
   ai@6.0.6:
     resolution: {integrity: sha512-LM0eAMWVn3RTj+0X5O1m/8g+7QiTeWG5aN5FsDbdmCkAQHVg93XxLbljFOLzi0NMjuJgf7fKLKmWoPsrdMyqfw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  ai@6.0.96:
+    resolution: {integrity: sha512-Y5TTTZw7hkkb5M3h5ohSGg2ILh24MU6y/w5N8dVtU7KB+csjRqeNoE6BQmjo29nhR+IMnuO4vHEYVrv7aQC8Rg==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -5906,9 +5924,23 @@ snapshots:
       '@vercel/oidc': 3.0.5
       zod: 4.3.3
 
+  '@ai-sdk/gateway@3.0.53(zod@4.3.3)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.8
+      '@ai-sdk/provider-utils': 4.0.15(zod@4.3.3)
+      '@vercel/oidc': 3.1.0
+      zod: 4.3.3
+
   '@ai-sdk/provider-utils@3.0.21(zod@4.3.3)':
     dependencies:
       '@ai-sdk/provider': 2.0.1
+      '@standard-schema/spec': 1.1.0
+      eventsource-parser: 3.0.6
+      zod: 4.3.3
+
+  '@ai-sdk/provider-utils@4.0.15(zod@4.3.3)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.8
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.6
       zod: 4.3.3
@@ -5928,15 +5960,19 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/react@2.0.135(react@19.2.3)(zod@4.3.3)':
+  '@ai-sdk/provider@3.0.8':
     dependencies:
-      '@ai-sdk/provider-utils': 3.0.21(zod@4.3.3)
-      ai: 5.0.133(zod@4.3.3)
+      json-schema: 0.4.0
+
+  '@ai-sdk/react@3.0.98(react@19.2.3)(zod@4.3.3)':
+    dependencies:
+      '@ai-sdk/provider-utils': 4.0.15(zod@4.3.3)
+      ai: 6.0.96(zod@4.3.3)
       react: 19.2.3
       swr: 2.4.0(react@19.2.3)
       throttleit: 2.1.0
-    optionalDependencies:
-      zod: 4.3.3
+    transitivePeerDependencies:
+      - zod
 
   '@alloc/quick-lru@5.2.0': {}
 
@@ -8313,6 +8349,14 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 1.2.0
 
+  '@vitest/mocker@2.1.9(vite@5.4.21(@types/node@22.19.3)(lightningcss@1.30.2))':
+    dependencies:
+      '@vitest/spy': 2.1.9
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 5.4.21(@types/node@22.19.3)(lightningcss@1.30.2)
+
   '@vitest/mocker@2.1.9(vite@5.4.21(@types/node@24.10.13)(lightningcss@1.30.2))':
     dependencies:
       '@vitest/spy': 2.1.9
@@ -8373,6 +8417,14 @@ snapshots:
       '@ai-sdk/gateway': 3.0.5(zod@4.3.3)
       '@ai-sdk/provider': 3.0.1
       '@ai-sdk/provider-utils': 4.0.2(zod@4.3.3)
+      '@opentelemetry/api': 1.9.0
+      zod: 4.3.3
+
+  ai@6.0.96(zod@4.3.3):
+    dependencies:
+      '@ai-sdk/gateway': 3.0.53(zod@4.3.3)
+      '@ai-sdk/provider': 3.0.8
+      '@ai-sdk/provider-utils': 4.0.15(zod@4.3.3)
       '@opentelemetry/api': 1.9.0
       zod: 4.3.3
 
@@ -9323,7 +9375,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  fumadocs-mdx@14.0.4(fumadocs-core@16.2.2(@types/react@19.2.7)(lucide-react@0.555.0(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(vite@5.4.21(@types/node@24.10.13)(lightningcss@1.30.2)):
+  fumadocs-mdx@14.0.4(fumadocs-core@16.2.2(@types/react@19.2.7)(lucide-react@0.555.0(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3):
     dependencies:
       '@mdx-js/mdx': 3.1.1
       '@standard-schema/spec': 1.1.0
@@ -9347,7 +9399,6 @@ snapshots:
     optionalDependencies:
       next: 16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react: 19.2.3
-      vite: 5.4.21(@types/node@24.10.13)(lightningcss@1.30.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -11728,7 +11779,7 @@ snapshots:
   vitest@2.1.9(@types/node@22.19.3)(lightningcss@1.30.2):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(vite@5.4.21(@types/node@24.10.13)(lightningcss@1.30.2))
+      '@vitest/mocker': 2.1.9(vite@5.4.21(@types/node@22.19.3)(lightningcss@1.30.2))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
