@@ -27,7 +27,7 @@
   "dependencies": {
     "@chat-adapter/shared": "workspace:*",
     "chat": "workspace:*",
-    "googleapis": "^144.0.0"
+    "googleapis": "^171.4.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
