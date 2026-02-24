@@ -60,6 +60,7 @@ const TELEGRAM_MESSAGE_LIMIT = 4096;
 const TELEGRAM_CAPTION_LIMIT = 1024;
 const TELEGRAM_SECRET_TOKEN_HEADER = "x-telegram-bot-api-secret-token";
 const MESSAGE_ID_PATTERN = /^([^:]+):(\d+)$/;
+const TELEGRAM_MARKDOWN_PARSE_MODE = "Markdown";
 
 export class TelegramAdapter
   implements Adapter<TelegramThreadId, TelegramRawMessage>
@@ -312,6 +313,7 @@ export class TelegramAdapter
 
     const card = extractCard(message);
     const replyMarkup = card ? cardToTelegramInlineKeyboard(card) : undefined;
+    const parseMode = card ? TELEGRAM_MARKDOWN_PARSE_MODE : undefined;
     const text = this.truncateMessage(
       convertEmojiPlaceholders(
         card ? cardToFallbackText(card) : this.formatConverter.renderPostable(message),
@@ -334,7 +336,13 @@ export class TelegramAdapter
       if (!file) {
         throw new ValidationError("telegram", "File upload payload is empty");
       }
-      rawMessage = await this.sendDocument(parsedThread, file, text, replyMarkup);
+      rawMessage = await this.sendDocument(
+        parsedThread,
+        file,
+        text,
+        replyMarkup,
+        parseMode
+      );
     } else {
       if (!text.trim()) {
         throw new ValidationError("telegram", "Message text cannot be empty");
@@ -345,6 +353,7 @@ export class TelegramAdapter
         message_thread_id: parsedThread.messageThreadId,
         text,
         reply_markup: replyMarkup,
+        parse_mode: parseMode,
       });
     }
 
@@ -383,6 +392,7 @@ export class TelegramAdapter
 
     const card = extractCard(message);
     const replyMarkup = card ? cardToTelegramInlineKeyboard(card) : undefined;
+    const parseMode = card ? TELEGRAM_MARKDOWN_PARSE_MODE : undefined;
     const text = this.truncateMessage(
       convertEmojiPlaceholders(
         card ? cardToFallbackText(card) : this.formatConverter.renderPostable(message),
@@ -401,6 +411,7 @@ export class TelegramAdapter
         message_id: telegramMessageId,
         text,
         reply_markup: replyMarkup ?? emptyTelegramInlineKeyboard(),
+        parse_mode: parseMode,
       }
     );
 
@@ -815,7 +826,8 @@ export class TelegramAdapter
       mimeType?: string;
     },
     text: string,
-    replyMarkup?: TelegramInlineKeyboardMarkup
+    replyMarkup?: TelegramInlineKeyboardMarkup,
+    parseMode?: string
   ): Promise<TelegramMessage> {
     const buffer = await this.toTelegramBuffer(file.data);
 
@@ -827,6 +839,9 @@ export class TelegramAdapter
 
     if (text.trim()) {
       formData.append("caption", this.truncateCaption(text));
+      if (parseMode) {
+        formData.append("parse_mode", parseMode);
+      }
     }
 
     const blob = new Blob([new Uint8Array(buffer)], {
