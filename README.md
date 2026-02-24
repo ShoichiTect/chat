@@ -53,7 +53,7 @@ See the [Getting Started guide](https://chat-sdk.dev/docs/getting-started) for a
 | Microsoft Teams | `@chat-adapter/teams` | Yes | Read-only | Yes | No | Post+Edit | Yes |
 | Google Chat | `@chat-adapter/gchat` | Yes | Yes | Yes | No | Post+Edit | Yes |
 | Discord | `@chat-adapter/discord` | Yes | Yes | Yes | No | Post+Edit | Yes |
-| Telegram | `@chat-adapter/telegram` | Yes | Yes | No | No | Post+Edit | Yes |
+| Telegram | `@chat-adapter/telegram` | Yes | Yes | Partial | No | Post+Edit | Yes |
 | GitHub | `@chat-adapter/github` | Yes | Yes | No | No | No | No |
 | Linear | `@chat-adapter/linear` | Yes | Yes | No | No | No | No |
 

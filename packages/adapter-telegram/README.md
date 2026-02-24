@@ -27,6 +27,8 @@ const bot = new Chat({
 });
 ```
 
+Features include mentions, reactions, typing indicators, file uploads, and card fallback rendering with inline keyboard buttons for card actions.
+
 ## Documentation
 
 Full setup instructions, configuration reference, and features at [chat-sdk.dev/docs/adapters/telegram](https://chat-sdk.dev/docs/adapters/telegram).

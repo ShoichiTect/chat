@@ -6,7 +6,6 @@ import {
   NetworkError,
   PermissionError,
   ResourceNotFoundError,
-  toBuffer,
   ValidationError,
 } from "@chat-adapter/shared";
 import type {
@@ -33,6 +32,11 @@ import {
   NotImplementedError,
 } from "chat";
 import { cardToFallbackText } from "@chat-adapter/shared";
+import {
+  cardToTelegramInlineKeyboard,
+  decodeTelegramCallbackData,
+  emptyTelegramInlineKeyboard,
+} from "./cards";
 import { TelegramFormatConverter } from "./markdown";
 import type {
   TelegramAdapterConfig,
@@ -45,6 +49,7 @@ import type {
   TelegramMessageReactionUpdated,
   TelegramRawMessage,
   TelegramReactionType,
+  TelegramInlineKeyboardMarkup,
   TelegramThreadId,
   TelegramUpdate,
   TelegramUser,
@@ -202,13 +207,13 @@ export class TelegramAdapter
       callbackQuery.message.message_id
     );
 
-    const data = callbackQuery.data ?? "";
+    const { actionId, value } = decodeTelegramCallbackData(callbackQuery.data);
 
     this.chat.processAction(
       {
         adapter: this,
-        actionId: data || "telegram_callback",
-        value: data || undefined,
+        actionId,
+        value,
         messageId,
         threadId,
         user: this.toAuthor(callbackQuery.from),
@@ -306,6 +311,7 @@ export class TelegramAdapter
     const parsedThread = this.resolveThreadId(threadId);
 
     const card = extractCard(message);
+    const replyMarkup = card ? cardToTelegramInlineKeyboard(card) : undefined;
     const text = this.truncateMessage(
       convertEmojiPlaceholders(
         card ? cardToFallbackText(card) : this.formatConverter.renderPostable(message),
@@ -328,7 +334,7 @@ export class TelegramAdapter
       if (!file) {
         throw new ValidationError("telegram", "File upload payload is empty");
       }
-      rawMessage = await this.sendDocument(parsedThread, file, text);
+      rawMessage = await this.sendDocument(parsedThread, file, text, replyMarkup);
     } else {
       if (!text.trim()) {
         throw new ValidationError("telegram", "Message text cannot be empty");
@@ -338,6 +344,7 @@ export class TelegramAdapter
         chat_id: parsedThread.chatId,
         message_thread_id: parsedThread.messageThreadId,
         text,
+        reply_markup: replyMarkup,
       });
     }
 
@@ -375,6 +382,7 @@ export class TelegramAdapter
       this.decodeCompositeMessageId(messageId, parsedThread.chatId);
 
     const card = extractCard(message);
+    const replyMarkup = card ? cardToTelegramInlineKeyboard(card) : undefined;
     const text = this.truncateMessage(
       convertEmojiPlaceholders(
         card ? cardToFallbackText(card) : this.formatConverter.renderPostable(message),
@@ -392,6 +400,7 @@ export class TelegramAdapter
         chat_id: chatId,
         message_id: telegramMessageId,
         text,
+        reply_markup: replyMarkup ?? emptyTelegramInlineKeyboard(),
       }
     );
 
@@ -805,12 +814,10 @@ export class TelegramAdapter
       data: Buffer | Blob | ArrayBuffer;
       mimeType?: string;
     },
-    text: string
+    text: string,
+    replyMarkup?: TelegramInlineKeyboardMarkup
   ): Promise<TelegramMessage> {
-    const buffer = await toBuffer(file.data, { platform: "gchat" });
-    if (!buffer) {
-      throw new ValidationError("telegram", "Unsupported file data type");
-    }
+    const buffer = await this.toTelegramBuffer(file.data);
 
     const formData = new FormData();
     formData.append("chat_id", thread.chatId);
@@ -826,8 +833,26 @@ export class TelegramAdapter
       type: file.mimeType ?? "application/octet-stream",
     });
     formData.append("document", blob, file.filename);
+    if (replyMarkup) {
+      formData.append("reply_markup", JSON.stringify(replyMarkup));
+    }
 
     return this.telegramFetch<TelegramMessage>("sendDocument", formData);
+  }
+
+  private async toTelegramBuffer(
+    data: Buffer | Blob | ArrayBuffer
+  ): Promise<Buffer> {
+    if (Buffer.isBuffer(data)) {
+      return data;
+    }
+    if (data instanceof ArrayBuffer) {
+      return Buffer.from(data);
+    }
+    if (data instanceof Blob) {
+      return Buffer.from(await data.arrayBuffer());
+    }
+    throw new ValidationError("telegram", "Unsupported file data type");
   }
 
   private paginateMessages(

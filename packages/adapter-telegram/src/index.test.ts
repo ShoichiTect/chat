@@ -6,6 +6,7 @@ import {
   TelegramAdapter,
   type TelegramMessage,
 } from "./index";
+import { encodeTelegramCallbackData } from "./cards";
 
 const mockLogger: Logger = {
   debug: vi.fn(),
@@ -227,6 +228,71 @@ describe("TelegramAdapter", () => {
     expect(sendMessageBody.text).toBe("hello");
   });
 
+  it("posts cards with inline keyboard buttons", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        telegramOk({
+          id: 999,
+          is_bot: true,
+          first_name: "Bot",
+          username: "mybot",
+        })
+      )
+      .mockResolvedValueOnce(telegramOk(sampleMessage()));
+
+    const adapter = createTelegramAdapter({
+      botToken: "token",
+      logger: mockLogger,
+      userName: "mybot",
+    });
+
+    await adapter.initialize(createMockChat());
+
+    await adapter.postMessage("telegram:123", {
+      type: "card",
+      title: "Approval needed",
+      children: [
+        {
+          type: "actions",
+          children: [
+            {
+              type: "button",
+              id: "approve",
+              label: "Approve",
+              value: "request-123",
+            },
+            {
+              type: "link-button",
+              label: "View",
+              url: "https://example.com",
+            },
+          ],
+        },
+      ],
+    });
+
+    const sendMessageBody = JSON.parse(
+      String((mockFetch.mock.calls[1]?.[1] as RequestInit).body)
+    ) as {
+      reply_markup?: {
+        inline_keyboard: Array<
+          Array<{ text: string; callback_data?: string; url?: string }>
+        >;
+      };
+    };
+
+    const row = sendMessageBody.reply_markup?.inline_keyboard[0];
+    expect(row).toBeDefined();
+    expect(row?.[0]).toEqual({
+      text: "Approve",
+      callback_data: encodeTelegramCallbackData("approve", "request-123"),
+    });
+    expect(row?.[1]).toEqual({
+      text: "View",
+      url: "https://example.com",
+    });
+  });
+
   it("adds and removes reactions", async () => {
     mockFetch
       .mockResolvedValueOnce(
@@ -309,5 +375,69 @@ describe("TelegramAdapter", () => {
       "m2",
     ]);
     expect(forward.nextCursor).toBe("123:2");
+  });
+
+  it("decodes structured callback payloads into action id and value", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        telegramOk({
+          id: 999,
+          is_bot: true,
+          first_name: "Bot",
+          username: "mybot",
+        })
+      )
+      .mockResolvedValueOnce(telegramOk(true));
+
+    const adapter = createTelegramAdapter({
+      botToken: "token",
+      logger: mockLogger,
+      userName: "mybot",
+    });
+
+    const chat = createMockChat();
+    await adapter.initialize(chat);
+
+    const request = new Request("https://example.com/webhook", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        update_id: 2,
+        callback_query: {
+          id: "callback-1",
+          from: {
+            id: 456,
+            is_bot: false,
+            first_name: "User",
+            username: "user",
+          },
+          message: sampleMessage({
+            chat: {
+              id: -100123,
+              type: "supergroup",
+              title: "General",
+            },
+          }),
+          chat_instance: "ci_1",
+          data: encodeTelegramCallbackData("approve", "request-123"),
+        },
+      }),
+    });
+
+    const response = await adapter.handleWebhook(request);
+    expect(response.status).toBe(200);
+
+    const processAction = chat.processAction as ReturnType<typeof vi.fn>;
+    expect(processAction).toHaveBeenCalledTimes(1);
+
+    const [event] = processAction.mock.calls[0] as [
+      {
+        actionId: string;
+        value?: string;
+      },
+    ];
+
+    expect(event.actionId).toBe("approve");
+    expect(event.value).toBe("request-123");
   });
 });

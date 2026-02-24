@@ -115,6 +115,24 @@ export interface TelegramMessage {
 }
 
 /**
+ * Telegram inline keyboard button.
+ * @see https://core.telegram.org/bots/api#inlinekeyboardbutton
+ */
+export interface TelegramInlineKeyboardButton {
+  text: string;
+  callback_data?: string;
+  url?: string;
+}
+
+/**
+ * Telegram inline keyboard markup.
+ * @see https://core.telegram.org/bots/api#inlinekeyboardmarkup
+ */
+export interface TelegramInlineKeyboardMarkup {
+  inline_keyboard: TelegramInlineKeyboardButton[][];
+}
+
+/**
  * Telegram callback query (inline keyboard button click).
  * @see https://core.telegram.org/bots/api#callbackquery
  */
