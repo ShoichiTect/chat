@@ -13,6 +13,7 @@ import type {
   CardElement,
   FieldsElement,
   LinkButtonElement,
+  LinkElement,
   SectionElement,
   TextElement,
 } from "chat";
@@ -114,6 +115,9 @@ function processChild(
       break;
     case "fields":
       convertFieldsElement(child, fields);
+      break;
+    case "link":
+      textParts.push(`[${convertEmoji(child.label)}](${child.url})`);
       break;
     default:
       break;

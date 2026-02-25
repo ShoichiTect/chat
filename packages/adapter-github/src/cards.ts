@@ -10,6 +10,7 @@ import type {
   CardChild,
   CardElement,
   FieldsElement,
+  LinkElement,
   TextElement,
 } from "chat";
 
@@ -114,6 +115,9 @@ function renderChild(child: CardChild): string[] {
         return [`![${escapeMarkdown(child.alt)}](${child.url})`];
       }
       return [`![](${child.url})`];
+
+    case "link":
+      return [`[${escapeMarkdown(child.label)}](${child.url})`];
 
     case "divider":
       return ["---"];
