@@ -1,5 +1,14 @@
 # @chat-adapter/teams
 
+## 4.15.0
+
+### Patch Changes
+
+- 39888ce: Fix teams bundlijng under strict esm
+- Updated dependencies [0f85031]
+  - chat@4.15.0
+  - @chat-adapter/shared@4.15.0
+
 ## 4.14.0
 
 ### Minor Changes

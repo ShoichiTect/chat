@@ -1,5 +1,13 @@
 # chat
 
+## 4.15.0
+
+### Minor Changes
+
+- 0f85031: Added configurable dedupeTtlMs option to ChatConfig
+
+  Change default dedupe ttl to 5min
+
 ## 4.14.0
 
 ### Minor Changes
