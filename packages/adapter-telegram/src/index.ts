@@ -1,6 +1,7 @@
 import {
   AdapterRateLimitError,
   AuthenticationError,
+  cardToFallbackText,
   extractCard,
   extractFiles,
   NetworkError,
@@ -31,7 +32,6 @@ import {
   Message,
   NotImplementedError,
 } from "chat";
-import { cardToFallbackText } from "@chat-adapter/shared";
 import {
   cardToTelegramInlineKeyboard,
   decodeTelegramCallbackData,
@@ -44,12 +44,12 @@ import type {
   TelegramCallbackQuery,
   TelegramChat,
   TelegramFile,
+  TelegramInlineKeyboardMarkup,
   TelegramMessage,
   TelegramMessageEntity,
   TelegramMessageReactionUpdated,
   TelegramRawMessage,
   TelegramReactionType,
-  TelegramInlineKeyboardMarkup,
   TelegramThreadId,
   TelegramUpdate,
   TelegramUser,
@@ -61,6 +61,18 @@ const TELEGRAM_CAPTION_LIMIT = 1024;
 const TELEGRAM_SECRET_TOKEN_HEADER = "x-telegram-bot-api-secret-token";
 const MESSAGE_ID_PATTERN = /^([^:]+):(\d+)$/;
 const TELEGRAM_MARKDOWN_PARSE_MODE = "Markdown";
+const TRAILING_SLASHES_REGEX = /\/+$/;
+const MESSAGE_SEQUENCE_PATTERN = /:(\d+)$/;
+const LEADING_AT_PATTERN = /^@+/;
+const EMOJI_PLACEHOLDER_PATTERN = /^\{\{emoji:([a-z0-9_]+)\}\}$/i;
+const EMOJI_NAME_PATTERN = /^[a-z0-9_+-]+$/i;
+interface TelegramMessageAuthor {
+  fullName: string;
+  isBot: boolean | "unknown";
+  isMe: boolean;
+  userId: string;
+  userName: string;
+}
 
 export class TelegramAdapter
   implements Adapter<TelegramThreadId, TelegramRawMessage>
@@ -94,7 +106,10 @@ export class TelegramAdapter
     config: TelegramAdapterConfig & { logger: Logger; userName?: string }
   ) {
     this.botToken = config.botToken;
-    this.apiBaseUrl = (config.apiBaseUrl ?? TELEGRAM_API_BASE).replace(/\/+$/, "");
+    this.apiBaseUrl = (config.apiBaseUrl ?? TELEGRAM_API_BASE).replace(
+      TRAILING_SLASHES_REGEX,
+      ""
+    );
     this.secretToken = config.secretToken;
     this.logger = config.logger;
     this._userName = this.normalizeUserName(config.userName ?? "bot");
@@ -133,7 +148,9 @@ export class TelegramAdapter
     if (this.secretToken) {
       const headerToken = request.headers.get(TELEGRAM_SECRET_TOKEN_HEADER);
       if (headerToken !== this.secretToken) {
-        this.logger.warn("Telegram webhook rejected due to invalid secret token");
+        this.logger.warn(
+          "Telegram webhook rejected due to invalid secret token"
+        );
         return new Response("Invalid secret token", { status: 401 });
       }
     }
@@ -146,7 +163,9 @@ export class TelegramAdapter
     }
 
     if (!this.chat) {
-      this.logger.warn("Chat instance not initialized, ignoring Telegram webhook");
+      this.logger.warn(
+        "Chat instance not initialized, ignoring Telegram webhook"
+      );
       return new Response("OK", { status: 200 });
     }
 
@@ -316,7 +335,9 @@ export class TelegramAdapter
     const parseMode = card ? TELEGRAM_MARKDOWN_PARSE_MODE : undefined;
     const text = this.truncateMessage(
       convertEmojiPlaceholders(
-        card ? cardToFallbackText(card) : this.formatConverter.renderPostable(message),
+        card
+          ? cardToFallbackText(card)
+          : this.formatConverter.renderPostable(message),
         "gchat"
       )
     );
@@ -363,7 +384,10 @@ export class TelegramAdapter
         rawMessage.message_thread_id ?? parsedThread.messageThreadId,
     });
 
-    const parsedMessage = this.parseTelegramMessage(rawMessage, resultingThreadId);
+    const parsedMessage = this.parseTelegramMessage(
+      rawMessage,
+      resultingThreadId
+    );
     this.cacheMessage(parsedMessage);
 
     return {
@@ -387,15 +411,20 @@ export class TelegramAdapter
     message: AdapterPostableMessage
   ): Promise<RawMessage<TelegramRawMessage>> {
     const parsedThread = this.resolveThreadId(threadId);
-    const { chatId, messageId: telegramMessageId, compositeId } =
-      this.decodeCompositeMessageId(messageId, parsedThread.chatId);
+    const {
+      chatId,
+      messageId: telegramMessageId,
+      compositeId,
+    } = this.decodeCompositeMessageId(messageId, parsedThread.chatId);
 
     const card = extractCard(message);
     const replyMarkup = card ? cardToTelegramInlineKeyboard(card) : undefined;
     const parseMode = card ? TELEGRAM_MARKDOWN_PARSE_MODE : undefined;
     const text = this.truncateMessage(
       convertEmojiPlaceholders(
-        card ? cardToFallbackText(card) : this.formatConverter.renderPostable(message),
+        card
+          ? cardToFallbackText(card)
+          : this.formatConverter.renderPostable(message),
         "gchat"
       )
     );
@@ -461,8 +490,11 @@ export class TelegramAdapter
 
   async deleteMessage(threadId: string, messageId: string): Promise<void> {
     const parsedThread = this.resolveThreadId(threadId);
-    const { chatId, messageId: telegramMessageId, compositeId } =
-      this.decodeCompositeMessageId(messageId, parsedThread.chatId);
+    const {
+      chatId,
+      messageId: telegramMessageId,
+      compositeId,
+    } = this.decodeCompositeMessageId(messageId, parsedThread.chatId);
 
     await this.telegramFetch<boolean>("deleteMessage", {
       chat_id: chatId,
@@ -547,7 +579,9 @@ export class TelegramAdapter
       }
     }
 
-    const allMessages = [...byId.values()].sort((a, b) => this.compareMessages(a, b));
+    const allMessages = [...byId.values()].sort((a, b) =>
+      this.compareMessages(a, b)
+    );
     return this.paginateMessages(allMessages, options);
   }
 
@@ -626,12 +660,18 @@ export class TelegramAdapter
   decodeThreadId(threadId: string): TelegramThreadId {
     const parts = threadId.split(":");
     if (parts[0] !== "telegram" || parts.length < 2 || parts.length > 3) {
-      throw new ValidationError("telegram", `Invalid Telegram thread ID: ${threadId}`);
+      throw new ValidationError(
+        "telegram",
+        `Invalid Telegram thread ID: ${threadId}`
+      );
     }
 
     const chatId = parts[1];
     if (!chatId) {
-      throw new ValidationError("telegram", `Invalid Telegram thread ID: ${threadId}`);
+      throw new ValidationError(
+        "telegram",
+        `Invalid Telegram thread ID: ${threadId}`
+      );
     }
 
     const messageThreadPart = parts[2];
@@ -673,18 +713,23 @@ export class TelegramAdapter
     threadId: string
   ): Message<TelegramRawMessage> {
     const text = raw.text ?? raw.caption ?? "";
+    let author: TelegramMessageAuthor;
 
-    const author = raw.from
-      ? this.toAuthor(raw.from)
-      : raw.sender_chat
-        ? this.toReactionActorAuthor(raw.sender_chat)
-        : {
-            userId: String(raw.chat.id),
-            userName: this.chatDisplayName(raw.chat) ?? String(raw.chat.id),
-            fullName: this.chatDisplayName(raw.chat) ?? String(raw.chat.id),
-            isBot: "unknown" as const,
-            isMe: false,
-          };
+    if (raw.from) {
+      author = this.toAuthor(raw.from);
+    } else if (raw.sender_chat) {
+      author = this.toReactionActorAuthor(raw.sender_chat);
+    } else {
+      const fallbackName =
+        this.chatDisplayName(raw.chat) ?? String(raw.chat.id);
+      author = {
+        userId: String(raw.chat.id),
+        userName: fallbackName,
+        fullName: fallbackName,
+        isBot: "unknown" as const,
+        isMe: false,
+      };
+    }
 
     const message = new Message<TelegramRawMessage>({
       id: this.encodeMessageId(String(raw.chat.id), raw.message_id),
@@ -697,7 +742,9 @@ export class TelegramAdapter
         dateSent: new Date(raw.date * 1000),
         edited: raw.edit_date !== undefined,
         editedAt:
-          raw.edit_date !== undefined ? new Date(raw.edit_date * 1000) : undefined,
+          raw.edit_date !== undefined
+            ? new Date(raw.edit_date * 1000)
+            : undefined,
       },
       attachments: this.extractAttachments(raw),
       isMention: this.isBotMentioned(raw, text),
@@ -881,7 +928,9 @@ export class TelegramAdapter
       return { messages: [] };
     }
 
-    const messageIndexById = new Map(messages.map((message, index) => [message.id, index]));
+    const messageIndexById = new Map(
+      messages.map((message, index) => [message.id, index])
+    );
 
     if (direction === "backward") {
       const end =
@@ -924,7 +973,9 @@ export class TelegramAdapter
     this.messageCache.set(message.threadId, existing);
   }
 
-  private findCachedMessage(messageId: string): Message<TelegramRawMessage> | undefined {
+  private findCachedMessage(
+    messageId: string
+  ): Message<TelegramRawMessage> | undefined {
     for (const messages of this.messageCache.values()) {
       const found = messages.find((message) => message.id === messageId);
       if (found) {
@@ -950,7 +1001,8 @@ export class TelegramAdapter
     a: Message<TelegramRawMessage>,
     b: Message<TelegramRawMessage>
   ): number {
-    const timeDiff = a.metadata.dateSent.getTime() - b.metadata.dateSent.getTime();
+    const timeDiff =
+      a.metadata.dateSent.getTime() - b.metadata.dateSent.getTime();
     if (timeDiff !== 0) {
       return timeDiff;
     }
@@ -959,7 +1011,7 @@ export class TelegramAdapter
   }
 
   private messageSequence(messageId: string): number {
-    const match = messageId.match(/:(\d+)$/);
+    const match = messageId.match(MESSAGE_SEQUENCE_PATTERN);
     return match ? Number.parseInt(match[1], 10) : 0;
   }
 
@@ -1008,7 +1060,10 @@ export class TelegramAdapter
 
     const parsedMessageId = Number.parseInt(messageId, 10);
     if (!Number.isFinite(parsedMessageId)) {
-      throw new ValidationError("telegram", `Invalid Telegram message ID: ${messageId}`);
+      throw new ValidationError(
+        "telegram",
+        `Invalid Telegram message ID: ${messageId}`
+      );
     }
 
     return {
@@ -1018,8 +1073,11 @@ export class TelegramAdapter
     };
   }
 
-  private toAuthor(user: TelegramUser) {
-    const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+  private toAuthor(user: TelegramUser): TelegramMessageAuthor {
+    const fullName = [user.first_name, user.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
 
     return {
       userId: String(user.id),
@@ -1030,7 +1088,7 @@ export class TelegramAdapter
     };
   }
 
-  private toReactionActorAuthor(chat: TelegramChat) {
+  private toReactionActorAuthor(chat: TelegramChat): TelegramMessageAuthor {
     const name = this.chatDisplayName(chat) ?? String(chat.id);
     return {
       userId: `chat:${chat.id}`,
@@ -1046,7 +1104,10 @@ export class TelegramAdapter
       return chat.title;
     }
 
-    const privateName = [chat.first_name, chat.last_name].filter(Boolean).join(" ").trim();
+    const privateName = [chat.first_name, chat.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
     if (privateName) {
       return privateName;
     }
@@ -1100,7 +1161,7 @@ export class TelegramAdapter
   }
 
   private normalizeUserName(value: string): string {
-    return value.replace(/^@+/, "").trim() || "bot";
+    return value.replace(LEADING_AT_PATTERN, "").trim() || "bot";
   }
 
   private truncateMessage(text: string): string {
@@ -1134,7 +1195,7 @@ export class TelegramAdapter
       };
     }
 
-    const placeholderMatch = emoji.match(/^\{\{emoji:([a-z0-9_]+)\}\}$/i);
+    const placeholderMatch = emoji.match(EMOJI_PLACEHOLDER_PATTERN);
     if (placeholderMatch) {
       return {
         type: "emoji",
@@ -1142,7 +1203,7 @@ export class TelegramAdapter
       };
     }
 
-    if (/^[a-z0-9_+\-]+$/i.test(emoji)) {
+    if (EMOJI_NAME_PATTERN.test(emoji)) {
       return {
         type: "emoji",
         emoji: defaultEmojiResolver.toGChat(emoji.toLowerCase()),
@@ -1188,9 +1249,7 @@ export class TelegramAdapter
                 "Content-Type": "application/json",
               },
         body:
-          payload instanceof FormData
-            ? payload
-            : JSON.stringify(payload ?? {}),
+          payload instanceof FormData ? payload : JSON.stringify(payload ?? {}),
       });
     } catch (error) {
       throw new NetworkError(
@@ -1260,7 +1319,9 @@ export class TelegramAdapter
 }
 
 export function createTelegramAdapter(
-  config?: Partial<TelegramAdapterConfig & { logger: Logger; userName?: string }>
+  config?: Partial<
+    TelegramAdapterConfig & { logger: Logger; userName?: string }
+  >
 ): TelegramAdapter {
   const botToken = config?.botToken ?? process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
@@ -1271,7 +1332,9 @@ export function createTelegramAdapter(
   }
 
   const apiBaseUrl =
-    config?.apiBaseUrl ?? process.env.TELEGRAM_API_BASE_URL ?? TELEGRAM_API_BASE;
+    config?.apiBaseUrl ??
+    process.env.TELEGRAM_API_BASE_URL ??
+    TELEGRAM_API_BASE;
   const secretToken =
     config?.secretToken ?? process.env.TELEGRAM_WEBHOOK_SECRET_TOKEN;
   const userName = config?.userName ?? process.env.TELEGRAM_BOT_USERNAME;

@@ -6,10 +6,10 @@
  * Telegram adapter configuration.
  */
 export interface TelegramAdapterConfig {
-  /** Telegram bot token from BotFather. */
-  botToken: string;
   /** Optional custom API base URL (defaults to https://api.telegram.org). */
   apiBaseUrl?: string;
+  /** Telegram bot token from BotFather. */
+  botToken: string;
   /** Optional webhook secret token checked against x-telegram-bot-api-secret-token. */
   secretToken?: string;
 }
@@ -29,12 +29,12 @@ export interface TelegramThreadId {
  * @see https://core.telegram.org/bots/api#user
  */
 export interface TelegramUser {
+  first_name: string;
   id: number;
   is_bot: boolean;
-  first_name: string;
+  language_code?: string;
   last_name?: string;
   username?: string;
-  language_code?: string;
 }
 
 /**
@@ -42,12 +42,12 @@ export interface TelegramUser {
  * @see https://core.telegram.org/bots/api#chat
  */
 export interface TelegramChat {
-  id: number;
-  type: "private" | "group" | "supergroup" | "channel";
-  title?: string;
-  username?: string;
   first_name?: string;
+  id: number;
   last_name?: string;
+  title?: string;
+  type: "private" | "group" | "supergroup" | "channel";
+  username?: string;
 }
 
 /**
@@ -55,9 +55,9 @@ export interface TelegramChat {
  * @see https://core.telegram.org/bots/api#messageentity
  */
 export interface TelegramMessageEntity {
-  type: string;
-  offset: number;
   length: number;
+  offset: number;
+  type: string;
   user?: TelegramUser;
 }
 
@@ -66,17 +66,17 @@ export interface TelegramMessageEntity {
  */
 export interface TelegramFile {
   file_id: string;
-  file_unique_id?: string;
-  file_size?: number;
   file_path?: string;
+  file_size?: number;
+  file_unique_id?: string;
 }
 
 /**
  * Telegram photo size object.
  */
 export interface TelegramPhotoSize extends TelegramFile {
-  width: number;
   height: number;
+  width: number;
 }
 
 /**
@@ -84,25 +84,6 @@ export interface TelegramPhotoSize extends TelegramFile {
  * @see https://core.telegram.org/bots/api#message
  */
 export interface TelegramMessage {
-  message_id: number;
-  message_thread_id?: number;
-  from?: TelegramUser;
-  sender_chat?: TelegramChat;
-  chat: TelegramChat;
-  date: number;
-  edit_date?: number;
-  text?: string;
-  caption?: string;
-  entities?: TelegramMessageEntity[];
-  caption_entities?: TelegramMessageEntity[];
-  photo?: TelegramPhotoSize[];
-  document?: TelegramFile & { file_name?: string; mime_type?: string };
-  video?: TelegramFile & {
-    width?: number;
-    height?: number;
-    mime_type?: string;
-    file_name?: string;
-  };
   audio?: TelegramFile & {
     duration?: number;
     performer?: string;
@@ -110,8 +91,27 @@ export interface TelegramMessage {
     mime_type?: string;
     file_name?: string;
   };
-  voice?: TelegramFile & { duration?: number; mime_type?: string };
+  caption?: string;
+  caption_entities?: TelegramMessageEntity[];
+  chat: TelegramChat;
+  date: number;
+  document?: TelegramFile & { file_name?: string; mime_type?: string };
+  edit_date?: number;
+  entities?: TelegramMessageEntity[];
+  from?: TelegramUser;
+  message_id: number;
+  message_thread_id?: number;
+  photo?: TelegramPhotoSize[];
+  sender_chat?: TelegramChat;
   sticker?: TelegramFile & { emoji?: string };
+  text?: string;
+  video?: TelegramFile & {
+    width?: number;
+    height?: number;
+    mime_type?: string;
+    file_name?: string;
+  };
+  voice?: TelegramFile & { duration?: number; mime_type?: string };
 }
 
 /**
@@ -119,8 +119,8 @@ export interface TelegramMessage {
  * @see https://core.telegram.org/bots/api#inlinekeyboardbutton
  */
 export interface TelegramInlineKeyboardButton {
-  text: string;
   callback_data?: string;
+  text: string;
   url?: string;
 }
 
@@ -137,25 +137,25 @@ export interface TelegramInlineKeyboardMarkup {
  * @see https://core.telegram.org/bots/api#callbackquery
  */
 export interface TelegramCallbackQuery {
-  id: string;
-  from: TelegramUser;
-  message?: TelegramMessage;
-  inline_message_id?: string;
   chat_instance: string;
   data?: string;
+  from: TelegramUser;
+  id: string;
+  inline_message_id?: string;
+  message?: TelegramMessage;
 }
 
 /**
  * Telegram reaction types.
  */
 export interface TelegramReactionTypeEmoji {
-  type: "emoji";
   emoji: string;
+  type: "emoji";
 }
 
 export interface TelegramReactionTypeCustomEmoji {
-  type: "custom_emoji";
   custom_emoji_id: string;
+  type: "custom_emoji";
 }
 
 export type TelegramReactionType =
@@ -167,14 +167,14 @@ export type TelegramReactionType =
  * @see https://core.telegram.org/bots/api#messagereactionupdated
  */
 export interface TelegramMessageReactionUpdated {
+  actor_chat?: TelegramChat;
   chat: TelegramChat;
+  date: number;
   message_id: number;
   message_thread_id?: number;
-  date: number;
-  old_reaction: TelegramReactionType[];
   new_reaction: TelegramReactionType[];
+  old_reaction: TelegramReactionType[];
   user?: TelegramUser;
-  actor_chat?: TelegramChat;
 }
 
 /**
@@ -182,26 +182,26 @@ export interface TelegramMessageReactionUpdated {
  * @see https://core.telegram.org/bots/api#update
  */
 export interface TelegramUpdate {
-  update_id: number;
-  message?: TelegramMessage;
-  edited_message?: TelegramMessage;
+  callback_query?: TelegramCallbackQuery;
   channel_post?: TelegramMessage;
   edited_channel_post?: TelegramMessage;
-  callback_query?: TelegramCallbackQuery;
+  edited_message?: TelegramMessage;
+  message?: TelegramMessage;
   message_reaction?: TelegramMessageReactionUpdated;
+  update_id: number;
 }
 
 /**
  * Telegram API response envelope.
  */
 export interface TelegramApiResponse<TResult> {
-  ok: boolean;
-  result?: TResult;
   description?: string;
   error_code?: number;
+  ok: boolean;
   parameters?: {
     retry_after?: number;
   };
+  result?: TResult;
 }
 
 export type TelegramRawMessage = TelegramMessage;

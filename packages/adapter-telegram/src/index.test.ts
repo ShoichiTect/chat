@@ -7,13 +7,13 @@ import {
 } from "@chat-adapter/shared";
 import type { ChatInstance, Logger } from "chat";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { encodeTelegramCallbackData } from "./cards";
 import {
   createTelegramAdapter,
   TelegramAdapter,
-  type TelegramReactionType,
   type TelegramMessage,
+  type TelegramReactionType,
 } from "./index";
-import { encodeTelegramCallbackData } from "./cards";
 
 const mockLogger: Logger = {
   debug: vi.fn(),
@@ -101,7 +101,7 @@ function sampleMessage(overrides?: Partial<TelegramMessage>): TelegramMessage {
 
 describe("createTelegramAdapter", () => {
   it("throws when bot token is missing", () => {
-    delete process.env.TELEGRAM_BOT_TOKEN;
+    process.env.TELEGRAM_BOT_TOKEN = undefined;
 
     expect(() => createTelegramAdapter({ logger: mockLogger })).toThrow(
       ValidationError
@@ -188,7 +188,7 @@ describe("TelegramAdapter", () => {
     const [, threadId, parsedMessage] = processMessage.mock.calls[0] as [
       unknown,
       string,
-      { isMention?: boolean; text: string }
+      { isMention?: boolean; text: string },
     ];
 
     expect(threadId).toBe("telegram:-100123");
@@ -451,7 +451,9 @@ describe("TelegramAdapter", () => {
     const processReaction = chat.processReaction as ReturnType<typeof vi.fn>;
     expect(processReaction).toHaveBeenCalledTimes(2);
 
-    const [addedEvent] = processReaction.mock.calls[0] as [{ added: boolean; rawEmoji: string }];
+    const [addedEvent] = processReaction.mock.calls[0] as [
+      { added: boolean; rawEmoji: string },
+    ];
     const [removedEvent] = processReaction.mock.calls[1] as [
       { added: boolean; rawEmoji: string },
     ];
@@ -713,9 +715,7 @@ describe("TelegramAdapter", () => {
       userName: "mybot",
     });
 
-    mockFetch.mockResolvedValueOnce(
-      telegramError(401, 401, "Unauthorized")
-    );
+    mockFetch.mockResolvedValueOnce(telegramError(401, 401, "Unauthorized"));
     await expect(adapter.startTyping("telegram:123")).rejects.toBeInstanceOf(
       AuthenticationError
     );
@@ -727,16 +727,12 @@ describe("TelegramAdapter", () => {
       AdapterRateLimitError
     );
 
-    mockFetch.mockResolvedValueOnce(
-      telegramError(403, 403, "Forbidden")
-    );
+    mockFetch.mockResolvedValueOnce(telegramError(403, 403, "Forbidden"));
     await expect(adapter.startTyping("telegram:123")).rejects.toBeInstanceOf(
       PermissionError
     );
 
-    mockFetch.mockResolvedValueOnce(
-      telegramError(400, 400, "Bad Request")
-    );
+    mockFetch.mockResolvedValueOnce(telegramError(400, 400, "Bad Request"));
     await expect(adapter.startTyping("telegram:123")).rejects.toBeInstanceOf(
       ValidationError
     );
