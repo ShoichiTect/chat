@@ -57,7 +57,10 @@ describe("jsx factory", () => {
     });
     expect(element.$$typeof).toBe(Symbol.for("chat.jsx.element"));
     expect(element.type).toBe(CardLink);
-    expect(element.props).toEqual({ url: "https://example.com", label: "Example" });
+    expect(element.props).toEqual({
+      url: "https://example.com",
+      label: "Example",
+    });
   });
 });
 

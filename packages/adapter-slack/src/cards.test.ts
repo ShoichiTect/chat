@@ -705,9 +705,7 @@ describe("markdown bold to Slack mrkdwn conversion", () => {
 describe("cardToBlockKit with CardLink", () => {
   it("converts CardLink to a mrkdwn section block with Slack link syntax", () => {
     const card = Card({
-      children: [
-        CardLink({ url: "https://example.com", label: "Click here" }),
-      ],
+      children: [CardLink({ url: "https://example.com", label: "Click here" })],
     });
 
     const blocks = cardToBlockKit(card);

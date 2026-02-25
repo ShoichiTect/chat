@@ -431,10 +431,7 @@ export function Fields(children: FieldElement[]): FieldsElement {
  * CardLink({ url: "https://example.com", label: "Visit Site" })
  * ```
  */
-export function CardLink(options: {
-  url: string;
-  label: string;
-}): LinkElement {
+export function CardLink(options: { url: string; label: string }): LinkElement {
   return {
     type: "link",
     url: options.url,

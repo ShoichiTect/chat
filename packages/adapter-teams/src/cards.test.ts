@@ -303,9 +303,7 @@ describe("cardToFallbackText", () => {
 describe("cardToAdaptiveCard with CardLink", () => {
   it("converts CardLink to a TextBlock with markdown link", () => {
     const card = Card({
-      children: [
-        CardLink({ url: "https://example.com", label: "Click here" }),
-      ],
+      children: [CardLink({ url: "https://example.com", label: "Click here" })],
     });
 
     const adaptive = cardToAdaptiveCard(card);

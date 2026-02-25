@@ -339,9 +339,7 @@ describe("cardToFallbackText", () => {
 describe("cardToDiscordPayload with CardLink", () => {
   it("appends markdown link to embed description", () => {
     const card = Card({
-      children: [
-        CardLink({ url: "https://example.com", label: "Click here" }),
-      ],
+      children: [CardLink({ url: "https://example.com", label: "Click here" })],
     });
 
     const payload = cardToDiscordPayload(card);

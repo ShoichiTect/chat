@@ -233,7 +233,10 @@ describe("Card Composition", () => {
       imageUrl: "https://example.com/order.png",
       children: [
         Text("Thank you for your order!"),
-        CardLink({ url: "https://example.com/order/1234", label: "View order details" }),
+        CardLink({
+          url: "https://example.com/order/1234",
+          label: "View order details",
+        }),
         Divider(),
         Fields([
           Field({ label: "Order ID", value: "#1234" }),

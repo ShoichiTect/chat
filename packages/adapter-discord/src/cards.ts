@@ -13,7 +13,6 @@ import type {
   CardElement,
   FieldsElement,
   LinkButtonElement,
-  LinkElement,
   SectionElement,
   TextElement,
 } from "chat";

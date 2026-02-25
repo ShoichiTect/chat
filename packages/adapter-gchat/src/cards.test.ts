@@ -453,9 +453,7 @@ describe("markdown bold to Google Chat conversion", () => {
 describe("cardToGoogleCard with CardLink", () => {
   it("converts CardLink to a textParagraph widget with HTML link", () => {
     const card = Card({
-      children: [
-        CardLink({ url: "https://example.com", label: "Click here" }),
-      ],
+      children: [CardLink({ url: "https://example.com", label: "Click here" })],
     });
 
     const googleCard = cardToGoogleCard(card);

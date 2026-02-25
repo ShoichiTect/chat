@@ -1,5 +1,5 @@
-import { Card, CardLink } from "chat";
 import type { CardElement } from "chat";
+import { Card, CardLink } from "chat";
 import { describe, expect, it } from "vitest";
 import { cardToGitHubMarkdown, cardToPlainText } from "./cards";
 
@@ -199,9 +199,7 @@ describe("cardToPlainText", () => {
 describe("cardToGitHubMarkdown with CardLink", () => {
   it("renders CardLink as markdown link", () => {
     const card = Card({
-      children: [
-        CardLink({ url: "https://example.com", label: "Click here" }),
-      ],
+      children: [CardLink({ url: "https://example.com", label: "Click here" })],
     });
 
     const markdown = cardToGitHubMarkdown(card);
